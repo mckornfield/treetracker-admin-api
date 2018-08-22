@@ -25,6 +25,8 @@ class ImageScrubber extends Component {
     this._cellRenderer = this._cellRenderer.bind(this)
     this._onResize = this._onResize.bind(this)
     this._setMasonryRef = this._setMasonryRef.bind(this)
+    this._onScroll = this._onScroll.bind(this)
+    this._renderedPics = [];
   }
 
   _cache = new CellMeasurerCache({
@@ -33,36 +35,34 @@ class ImageScrubber extends Component {
   })
   _columnCount = 0
 
+  _cellCount = 30
+
   componentDidMount() {
     console.log("Getting photos")
-    this.props.getPicturesAsync({ count: 1000 })
+    this.props.getPicturesAsync({count:1000})
   }
+  _cellRenderer({ index, isScrolling, key, parent, style }) {
+    const picture = this.props.picturesArray[index]
+    // console.log("rendering " + JSON.stringify(picture));
+    // .find(
+    //   function (data) {
+    //     return data.id === index;
+    //   }
+    // );
+    // console.log(`Contained value = ${this._renderedPics.includes(index)}`)
 
-  _cellRenderer({ index, key, parent, style }) {
-    const picture = this.props.picturesArray.find(
-      function (data) {
-        return data.id === index;
-      }
-    );
-    if (!picture) {
-      return null
-    } else {
+    // this._renderedPics.push(index)
       return (
         <CellMeasurer
           cache={this._cache}
           parent={parent}
-          index={index}
-          key={key}
-          fixedWidth={true}>
-          {({ measure }) => (
-            <img src={picture.imageUrl}
+        key={key}>
+        <img src={picture == null ? '' : picture.imageUrl}
               style={{ width: 200, margin: 10 }}
-              onLoad={measure} />
-          )}
+        />
         </CellMeasurer>
       )
     }
-  }
 
   _cellPositioner = createMasonryCellPositioner({
     cellMeasurerCache: this._cache,
@@ -73,19 +73,35 @@ class ImageScrubber extends Component {
 
   _onResize({ width }) {
     this._width = width;
+    console.log("ON Resize");
     this._calculateColumnCount();
     this._resetCellPositioner();
     this._masonry.recomputeCellPositions();
   }
 
+  _onScroll({ clientHeight, scrollHeight, scrollTop }) {
+    console.log(clientHeight)
+    console.log(scrollHeight)
+    console.log(scrollTop)
+    // console.log(this._cellPositioner);
+
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+      // console.log(this._cellCount)
+      // this._cellCount += 30;
+      // console.log(this._cellCount);
+    }
+  }
+
   _calculateColumnCount() {
     // const { columnWidth, gutterSize } = this.state;
+    console.log("Calculating column");
     const { columnWidth, gutterSize } = { columnWidth: 200, gutterSize: 10 }
 
     this._columnCount = Math.floor(this._width / (columnWidth + gutterSize));
   }
 
   _resetCellPositioner() {
+    console.log("Resetting position");
     const { columnWidth, gutterSize } = { columnWidth: 200, gutterSize: 10 }
 
     this._cellPositioner.reset({
@@ -108,7 +124,7 @@ class ImageScrubber extends Component {
             width={width}
             height={height}
             cellPositioner={this._cellPositioner}
-            cellCount={30}
+            cellCount={this.props.picturesArray.length}
             cellRenderer={this._cellRenderer}
             style={{ display: 'flex', flexWrap: 'wrap' }}
             ref={this._setMasonryRef}
@@ -121,6 +137,7 @@ class ImageScrubber extends Component {
 
 const mapState = state => {
   const keys = Object.keys(state.pictures.data);
+  console.log("keys are " + keys);
   return {
     picturesArray: keys.map(id => ({
       ...state.pictures.data[id]
